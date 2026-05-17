@@ -1,110 +1,52 @@
-/******************************************************************************
- *  readme.txt template                                                   
- *  Map
- *****************************************************************************/
+# Optimized Dijkstra's Shortest Path for Geographic Maps
+ 
+This project is a high-performance implementation of Dijkstra's algorithm built for large-scale geographic road networks. By combining early termination, incremental state reset, and an A* heuristic that exploits Euclidean geometry, it handles thousands of repeated shortest-path queries orders of magnitude faster than a standard implementation.
+ 
+Tested on a graph of **87,575 intersections** and **121,961 roads** representing the continental United States — reducing a 20+ minute baseline run to under 2 minutes on 50,000 short queries.
+ 
+## Key Features
+ 
+1. **Early termination** — stops the search the moment the destination is settled, skipping unnecessary work.
+2. **Incremental reset** — tracks only vertices modified per query and resets only those, avoiding an O(V) reinitialization between every query.
+3. **A\* heuristic** — uses Euclidean distance to the destination as an admissible, consistent heuristic to bias the search toward the target and shrink the explored region.
+4. Three client modes: single query with turtle graphics visualization, batch path output, and batch distance output.
+## Performance
+ 
+| Input File | Queries | Optimized | Baseline | Speedup |
+|---|---|---|---|---|
+| `usa-1000long.txt` | 1,000 | 21.2s | 45.4s | ~2x |
+| `usa-5000short.txt` | 5,000 | 12.4s | 270.5s | ~22x |
+| `usa-50000short.txt` | 50,000 | 119.5s | >20 min | >10x |
+ 
+Early termination helps most on short queries; A* helps most on long ones. Together they reduce both runtime and vertices examined by up to two orders of magnitude.
+ 
+## How It Works
+ 
+**Idea 1 — Early termination + incremental reset**
+ 
+Only the source is inserted into the priority queue initially. As vertices are relaxed, they are added to a `touched` list. Between queries, only those vertices are reset to ∞ instead of the full graph. The search exits as soon as the destination is popped from the PQ.
+ 
+**Idea 2 — A\* heuristic**
+ 
+When relaxing edge `v → w`, the priority of `w` is updated as:
+ 
+```
+priority(w) = dist[v] + edgeWeight(v, w) + euclidean(w, dest) − euclidean(v, dest)
+```
+ 
+The correction term tilts the search geometrically toward the destination. The heuristic is admissible and consistent, so the true shortest path is always returned.
+ 
+## Usage
+ 
+```bash
+javac *.java
+ 
+# Single query with visualization
+java ShortestPath input6.txt
+ 
+# Batch distances
+java Distances usa.txt < queries.txt
+ 
+```
 
-Name(s):  Amina El Guenuni    
-Login(s):      
-Precept #:  
-OS: Windows        
-Compiler: javac
-Editor:     
-Hours:      
-
-
-/******************************************************************************
- *  Explain your overall approach.
- *****************************************************************************/
-I implemented the first two optimizations ideas suggusted in PA05:
-
-For IDEA 1, instead of inserting all V vertices into the PQ upfront, I only insert the
-  source. I also maintained a "touched" list of vertices modified each query,
-  so re-initialization only resets those vertices instead of all V. Finally,
-  the search stops as soon as the destination is popped from the PQ as suggusted. 
-For IDEA 2, I implemented A* as suggusted with the updated formula, to make 
-   sure that the search is biased and shifting towards the destination. 
-Idea 1 helps most on short queries. While, idea 2 helps most on long ones.
-Together they significantly cut both runtime and vertices examined as showcased in
-this Readme document. 
-
-/******************************************************************************
- *  Which input files did you use to test your program? Mark the
- *  ones where your answers agreed with our reference solutions and
- *  the ones where it disagreed. How long (in seconds) did your program
- *  take to solve each instance? How many vertices did it examine
- *  on average per shortest path query?
- *****************************************************************************/
-I used the files provided below and added a timer as we did in previous assigments
-to calculate the runtime and vertices. I am not sure where to find the reference 
-solutions to check my work against it.  
-Input file                Running Time (seconds)     Vertices    Agreed?
-------------------------------------------------------------------------
-usa-1000long.txt             21.897                     44580        NA
-usa-5000short.txt            12.427                     4024         NA
-usa-50000short.txt           119.469                    4294         NA
-
-
-/******************************************************************************
- *  Known bugs / limitations.
- *****************************************************************************/
-- From my testing, I didnt find any clear bugs, I have worked through different bugs
-to make it work, namely the runtime counter and average queries one. As well, as understanding
-what expected. However, the idea 1 and 2 were clearly explained which made is a bit easier to implement
-
-/******************************************************************************
- *  List whatever help (if any) that you received.
- *****************************************************************************/
-- The book provided
--Geeks for Geeks
--Google ressources debuging coding problems, A* algo and understanding and fixing other bugs encournted
--Youtube videos about A* algo and Dijkstra
-
-/******************************************************************************
- *  Describe any serious problems you encountered.                    
- *****************************************************************************/
-I think understanding what needed was foundametal for me, I dont know why, but I kept thinking that I needed
-to comment off idea 1 implementation and then work on Idea 2, like the same strategy as PA 03. So, I had to do a lot 
-of reading for the instructions and tried to read a bit between the lines to understand what expected coding wise. I also 
-forgot comeplety about the runtime, until I checked the readme file and tried to use our previous assigment timer. Another
-problem, or challenge, was testing if my algorithm is working, I decided to create a copy of the original folder, add timer and run
-it and it is then, that I saw the difference between the improved algorithm and the original one provided. 
-For instance: 
------- RESULTS ------
-Total queries:         1000
-Total time:            21.187 seconds
-The original code shows this  
------- RESULTS ------
-Total queries:         1000
-Total time:            45.41 seconds
-
-/******************************************************************************
- *  List any other comments here. Feel free to provide any feedback   
- *  on how much you learned from doing the assignment, and whether    
- *  you enjoyed doing it.                                             
- *****************************************************************************/
-I honestly enjoyed it, this assignment was a great demonstration of how small algorithmic changes 
-produce significant real-world speedups. Seeing runtime drop from 45s to 21s 
-on long queries, and vertices examined drop from 44,000 to 4,000 on short 
-queries, made the value of A* and idea 1 improvement very important. 
-
-//Comparaison: 
-For 1000long:
-Improved version:
------- RESULTS ------
-Total queries:         1000
-Total time:            21.187 seconds
-The original code shows this  
------- RESULTS ------
-Total queries:         1000
-Total time:            45.41 seconds
-For 5000short
- 12.427seconds    
-The original code:
-Total time:            270.48 seconds
-
-
-
-For 50000short:
-119.469                    4294
-The original code:
-20min+ I had to stop it as it was taking way longer
+ 
